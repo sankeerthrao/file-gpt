@@ -7,7 +7,7 @@ from langchain.llms import OpenAI
 from langchain.docstore.document import Document
 from langchain.vectorstores import FAISS, VectorStore
 import docx2txt
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union
 import re
 import numpy as np
 from io import StringIO
@@ -17,7 +17,7 @@ from prompts import STUFF_PROMPT
 from pypdf import PdfReader
 from openai.error import AuthenticationError
 
-@st.experimental_memo()
+@st.cache_data()
 def parse_docx(file: BytesIO) -> str:
     text = docx2txt.process(file)
     # Remove multiple newlines
@@ -25,7 +25,7 @@ def parse_docx(file: BytesIO) -> str:
     return text
 
 
-@st.experimental_memo()
+@st.cache_data()
 def parse_pdf(file: BytesIO) -> List[str]:
     pdf = PdfReader(file)
     output = []
@@ -43,14 +43,14 @@ def parse_pdf(file: BytesIO) -> List[str]:
     return output
 
 
-@st.experimental_memo()
+@st.cache_data()
 def parse_txt(file: BytesIO) -> str:
     text = file.read().decode("utf-8")
     # Remove multiple newlines
     text = re.sub(r"\n\s*\n", "\n\n", text)
     return text
 
-@st.experimental_memo()
+@st.cache_data()
 def parse_csv(uploaded_file):
     # To read file as bytes:
     #bytes_data = uploaded_file.getvalue()
@@ -68,14 +68,14 @@ def parse_csv(uploaded_file):
     # dataframe = pd.read_csv(uploaded_file)
     return string_data
 
-@st.experimental_memo()
+@st.cache_data()
 def parse_any(uploaded_file):
     stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
     string_data = stringio.read()
     return string_data
 
 
-@st.cache(allow_output_mutation=True)
+@st.cache_data()
 def text_to_docs(text: str) -> List[Document]:
     """Converts a string or list of strings to a list of Documents
     with metadata."""
@@ -108,7 +108,7 @@ def text_to_docs(text: str) -> List[Document]:
     return doc_chunks
 
 
-@st.cache(allow_output_mutation=True, show_spinner=False)
+@st.cache_data()
 def embed_docs(docs: List[Document]) -> VectorStore:
     """Embeds a list of Documents and returns a FAISS index"""
 
@@ -124,7 +124,7 @@ def embed_docs(docs: List[Document]) -> VectorStore:
         return index
 
 
-@st.cache(allow_output_mutation=True)
+@st.cache_data()
 def search_docs(index: VectorStore, query: str) -> List[Document]:
     """Searches a FAISS index for similar chunks to the query
     and returns a list of Documents."""
@@ -133,7 +133,7 @@ def search_docs(index: VectorStore, query: str) -> List[Document]:
     return docs
 
 
-@st.cache(allow_output_mutation=True)
+@st.cache_data()
 def get_answer(docs: List[Document], query: str) -> Dict[str, Any]:
     """Gets an answer to a question from a list of Documents."""
 
@@ -149,7 +149,7 @@ def get_answer(docs: List[Document], query: str) -> Dict[str, Any]:
     return answer
 
 
-@st.cache(allow_output_mutation=True)
+@st.cache_data()
 def get_sources(answer: Dict[str, Any], docs: List[Document]) -> List[Document]:
     """Gets the source documents for an answer."""
 
@@ -164,7 +164,7 @@ def get_sources(answer: Dict[str, Any], docs: List[Document]) -> List[Document]:
     return source_docs
 
 
-def wrap_text_in_html(text: str | List[str]) -> str:
+def wrap_text_in_html(text: Union[str, List[str]]) -> str:
     """Wraps each text block separated by newlines in <p> tags"""
     if isinstance(text, list):
         # Add horizontal rules between pages
